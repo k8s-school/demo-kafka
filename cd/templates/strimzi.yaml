@@ -1,0 +1,26 @@
+{{ if .Values.e2e.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: strimzi
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: strimzi
+    app.kubernetes.io/part-of: kafka-demo
+    app.kubernetes.io/component: operator
+spec:
+  project: default
+  source:
+    chart: strimzi-kafka-operator
+    repoURL: quay.io/strimzi-helm
+    targetRevision: 0.45.0
+    helm:
+      releaseName: strimzi
+  destination:
+    server: {{ .Values.spec.destination.server }}
+    namespace: kafka
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+{{ end }}

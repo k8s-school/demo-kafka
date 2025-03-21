@@ -1,0 +1,14 @@
+# Kafka topic used to check that Kafka is up and running
+# when running 'argocd app wait kafka'
+# might not be needed in the future
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: watchdog
+  labels:
+    app.kubernetes.io/name: kafka-cluster
+    app.kubernetes.io/part-of: kafka
+    strimzi.io/cluster: "kafka-cluster"
+spec:
+  partitions: 3
+  replicas: 1

@@ -1,0 +1,11 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: fink-producer
+  labels:
+    app.kubernetes.io/name: kafka-cluster
+    app.kubernetes.io/part-of: kafka-demo
+    strimzi.io/cluster: "kafka-cluster"
+spec:
+  authentication:
+    type: scram-sha-512
