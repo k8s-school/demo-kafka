@@ -1,0 +1,26 @@
+{{ if .Values.e2e.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kafka
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/part-of: kafka-demo
+    app.kubernetes.io/component: storage
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    server: {{ .Values.spec.destination.server }}
+    namespace: kafka
+  project: default
+  source:
+    path: kafka
+    repoURL: {{ .Values.spec.source.repoURL }}
+    targetRevision: {{ .Values.spec.source.targetRevision.default }}
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+{{ end }}
