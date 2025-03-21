@@ -25,5 +25,5 @@ argocd app sync -l app.kubernetes.io/part-of=$app_name,app.kubernetes.io/compone
 argocd app wait -l app.kubernetes.io/part-of=$app_name,app.kubernetes.io/component=operator
 
 ink "Synk all apps for $app_name"
-argocd app sync -l app.kubernetes.io/part-of=harbor-registry
+argocd app sync -l app.kubernetes.io/part-of="$app_name"
 
