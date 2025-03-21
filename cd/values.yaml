@@ -3,3 +3,5 @@ spec:
     server: https://kubernetes.default.svc
   source:
     repoURL: https://github.com/k8s-school/demo-kafka/cd
+    targetRevision:
+      default: main
