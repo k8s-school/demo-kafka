@@ -3,7 +3,7 @@ dependencies:
   - package: github.com/k8s-school/ink@v0.0.1-rc5
     labels:
       e2e: "true"
-  - package: github.com/k8s-school/ktbx@v1.1.4-rc4
+  - package: github.com/k8s-school/ktbx@v1.1.4-rc7
     labels:
       e2e: "optional"
 
