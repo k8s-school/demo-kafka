@@ -10,3 +10,4 @@ DIR=$(cd "$(dirname "$0")"; pwd -P)
 
 $DIR/prereq.sh
 $DIR/argocd.sh
+$DIR/e2e.sh

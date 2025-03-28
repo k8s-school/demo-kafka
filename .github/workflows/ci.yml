@@ -31,3 +31,6 @@ jobs:
       - name: Run argocd
         run: |
           ./argocd.sh
+      - name: Run e2e tests
+        run: |
+          ./e2e.sh
