@@ -8,7 +8,7 @@ on:
       - master
 jobs:
   main:
-    name: Run Harbor demo
+    name: Run Kafka demo
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
