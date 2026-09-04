@@ -10,5 +10,5 @@ metadata:
     app.kubernetes.io/part-of: kafka
     strimzi.io/cluster: "kafka-cluster"
 spec:
-  partitions: 7
+  partitions: 3
   replicas: 1

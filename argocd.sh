@@ -36,9 +36,17 @@ kubectl config set-context --current --namespace="$argocd_ns"
 # CD repository, so without it ArgoCD falls back to the default branch and a
 # change to cd/ or kafka/ pushed on a feature branch is never the thing CI
 # tests -- it silently re-tests main, and the branch goes green on code nobody
-# ran. ciux ignite (ignite.sh, run before this script) exports the work branch.
-. "$DIR/.ciux.d/ciux_e2e.sh"
-revision="$DEMO_KAFKA_WORKBRANCH"
+# ran. That is exactly how the Strimzi 1.2.0 migration reached main untested.
+#
+# Not ciux's *_WORKBRANCH: that resolves the branch to use in DEPENDENCY
+# repositories and stays "main" for the project itself, even with --branch.
+if [ -n "${GITHUB_HEAD_REF:-}" ]; then
+    revision="$GITHUB_HEAD_REF"        # pull request: the source branch
+elif [ -n "${GITHUB_REF_NAME:-}" ]; then
+    revision="$GITHUB_REF_NAME"        # push: the branch being built
+else
+    revision=$(git -C "$DIR" rev-parse --abbrev-ref HEAD)
+fi
 ink "Deploying cd/ and kafka/ from revision '$revision'"
 
 # --revision points the root Application at that branch; -p overrides the Helm
