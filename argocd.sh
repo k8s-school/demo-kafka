@@ -32,10 +32,25 @@ diagnose() {
 argocd login --core
 kubectl config set-context --current --namespace="$argocd_ns"
 
+# The revision ArgoCD must read cd/ and kafka/ from. This repository is its own
+# CD repository, so without it ArgoCD falls back to the default branch and a
+# change to cd/ or kafka/ pushed on a feature branch is never the thing CI
+# tests -- it silently re-tests main, and the branch goes green on code nobody
+# ran. ciux ignite (ignite.sh, run before this script) exports the work branch.
+. "$DIR/.ciux.d/ciux_e2e.sh"
+revision="$DEMO_KAFKA_WORKBRANCH"
+ink "Deploying cd/ and kafka/ from revision '$revision'"
+
+# --revision points the root Application at that branch; -p overrides the Helm
+# value the child Applications (cd/templates/*.yaml) use for their own source.
+# Both are needed: they are two different levels of the app-of-apps.
 argocd app create "$app_name" --dest-server https://kubernetes.default.svc \
     --dest-namespace "$argocd_ns" \
     --repo "$cd_repo" \
-    --path cd
+    --path cd \
+    --revision "$revision" \
+    -p spec.source.targetRevision.default="$revision" \
+    --upsert
 
 argocd app sync --timeout "$argocd_timeout" "$app_name"
 
