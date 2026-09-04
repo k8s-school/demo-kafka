@@ -18,6 +18,18 @@ spec:
   destination:
     server: {{ .Values.spec.destination.server }}
     namespace: kafka
+  # The Kafka CRD shipped by the chart declares an empty
+  # "status.clusterSecurity.properties: {}". The API server drops empty
+  # "properties" maps when it persists a CRD, so the live object never matches
+  # what the chart asks for and this Application stays OutOfSync forever -- even
+  # though the operator is perfectly Healthy. "argocd app wait" then blocks until
+  # the CI job is killed. Ignoring that one path is what makes the sync converge.
+  ignoreDifferences:
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      name: kafkas.kafka.strimzi.io
+      jsonPointers:
+        - /spec/versions/0/schema/openAPIV3Schema/properties/status/properties/clusterSecurity/properties
   syncPolicy:
     syncOptions:
       - CreateNamespace=true

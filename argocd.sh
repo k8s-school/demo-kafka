@@ -37,15 +37,16 @@ argocd app create "$app_name" --dest-server https://kubernetes.default.svc \
     --repo "$cd_repo" \
     --path cd
 
-argocd app sync "$app_name"
+argocd app sync --timeout "$argocd_timeout" "$app_name"
 
 ink "Synk operator dependencies for $app_name"
-argocd app sync -l app.kubernetes.io/part-of=$app_name,app.kubernetes.io/component=operator
+argocd app sync --timeout "$argocd_timeout" \
+    -l app.kubernetes.io/part-of=$app_name,app.kubernetes.io/component=operator
 argocd app wait --timeout "$argocd_timeout" \
     -l app.kubernetes.io/part-of=$app_name,app.kubernetes.io/component=operator || diagnose
 
 ink "Synk all apps for $app_name"
-argocd app sync -l app.kubernetes.io/part-of="$app_name"
+argocd app sync --timeout "$argocd_timeout" -l app.kubernetes.io/part-of="$app_name"
 argocd app wait --timeout "$argocd_timeout" \
     -l app.kubernetes.io/part-of="$app_name" || diagnose
 
