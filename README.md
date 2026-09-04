@@ -107,6 +107,82 @@ kubectl exec my-cluster-dual-role-0 -c kafka -n kafka -- \
 kubectl logs -n kafka deployment/strimzi-cluster-operator -f
 ```
 
+## Where to look to understand operators
+
+Four things make an operator. Each one is visible in this demo — here is where.
+
+### 1. The CRD: a new kind of object
+
+The operator's install manifest carries CRDs. They are what lets the API server
+accept `kind: Kafka` at all, validate it, and store it in etcd. Note the `status`
+subresource: the user writes `spec`, the controller writes `status`, and they
+never fight over the same field.
+
+```bash
+kubectl get crd kafkas.kafka.strimzi.io -o yaml | head -40
+kubectl explain kafka.spec.kafka          # the schema, straight from the CRD
+```
+
+### 2. The custom resource: your intent
+
+In this repo, [`kafka/kafka-cluster.yaml`](kafka/kafka-cluster.yaml) is the whole
+point: ~50 lines describing a Kafka cluster. No StatefulSet, no Service, no PVC —
+those are consequences, not instructions. [`kafka/kafka-topic.yaml`](kafka/kafka-topic.yaml)
+and [`kafka/kafka-user.yaml`](kafka/kafka-user.yaml) do the same for topics and users.
+
+### 3. The controller: a Deployment that watches and acts
+
+The operator itself is an ordinary Deployment. Its logs *are* the reconciliation
+loop:
+
+```bash
+kubectl get deployment strimzi-cluster-operator -n kafka
+kubectl logs -n kafka deployment/strimzi-cluster-operator -f
+```
+
+And it reports back through `status.conditions` — this is how `kubectl wait
+kafka/my-cluster --for=condition=Ready` works, and why `quickstart.sh` waits on
+the resource rather than on pods:
+
+```bash
+kubectl get kafka my-cluster -n kafka -o jsonpath='{.status.conditions}' | jq
+```
+
+### 4. The RBAC: why operators are powerful (and risky)
+
+A controller that creates StatefulSets, Services and Secrets cluster-wide needs
+permissions to match. This is the part to read before installing any operator in
+production:
+
+```bash
+kubectl get clusterrole | grep strimzi
+kubectl get clusterrole strimzi-cluster-operator-global -o yaml
+```
+
+### The ownership chain
+
+Everything the operator creates is linked back to your resource by
+`ownerReferences`, which is why deleting the `Kafka` object cascades — and why
+deleting a *pod* only gets it rebuilt:
+
+```
+Pod/my-cluster-dual-role-0
+  └── owned by StrimziPodSet/my-cluster-dual-role
+        └── owned by KafkaNodePool/dual-role
+              └── (root: the resource you applied)
+```
+
+Follow it yourself:
+
+```bash
+kubectl get pod my-cluster-dual-role-0 -n kafka \
+  -o jsonpath='{.metadata.ownerReferences[*].kind}/{.metadata.ownerReferences[*].name}'
+```
+
+`StrimziPodSet` is worth a pause: Strimzi replaced StatefulSets with its *own*
+CRD, because it needed per-pod control StatefulSets do not offer. An operator can
+define the primitives it wishes Kubernetes had.
+
 ## The GitOps variant
 
 `quickstart.sh` installs things imperatively. The repository also carries a
@@ -122,22 +198,27 @@ it needs [`ciux`](https://github.com/k8s-school/ciux) on top of the prerequisite
 above. Use it to show how an operator is deployed in a real GitOps setup, not for
 a first look at operators.
 
-> **Note** — this path pins Strimzi to chart `0.49.1` (`cd/templates/strimzi.yaml`)
-> and its manifests under `kafka/` use the `kafka.strimzi.io/v1beta2` API. Current
-> Strimzi (1.x) serves `v1` only, so bumping the pin means migrating those
-> manifests at the same time. `quickstart.sh`, which tracks `latest`, is
-> unaffected.
+Here the operator is itself deployed declaratively: `cd/templates/strimzi.yaml`
+is an ArgoCD `Application` pointing at the Strimzi Helm chart, and
+`cd/templates/kafka.yaml` is a second one pointing at this repo's `kafka/`
+directory. Two levels of the same idea — a resource describing a desired state,
+and a controller making it true.
 
-| Script | Role |
-|---|---|
-| `quickstart.sh` | The demo. Strimzi + a Kafka cluster, straight from upstream. |
-| `run-all.sh` | The GitOps path: `prereq.sh` + `argocd.sh` + `e2e.sh`. |
-| `prereq.sh` | Creates a kind cluster, installs OLM and the ArgoCD operator. |
-| `argocd.sh` | Registers this repo as an ArgoCD app and syncs it. |
-| `e2e.sh` | End-to-end check: the Kafka cluster answers. |
-| `ignite.sh` | Installs the pinned tool versions via `ciux`. |
-| `cd/` | ArgoCD `Application` manifests (Helm chart). |
-| `kafka/` | The `Kafka`, `KafkaTopic` and `KafkaUser` resources ArgoCD deploys. |
+## Repository map
+
+| Path | What it is | Read it to see |
+|---|---|---|
+| `quickstart.sh` | The demo. Strimzi + a Kafka cluster from upstream. | The whole pattern in ~5 commands |
+| `kafka/kafka-cluster.yaml` | The `Kafka` + `KafkaNodePool` resources | **Declared intent**, the core of the demo |
+| `kafka/kafka-topic.yaml` | A `KafkaTopic` | A topic as a Kubernetes object |
+| `kafka/kafka-user.yaml` | A `KafkaUser` | Credentials as a Kubernetes object |
+| `cd/templates/strimzi.yaml` | ArgoCD `Application` for the operator | How an operator is installed via GitOps |
+| `cd/templates/kafka.yaml` | ArgoCD `Application` for the cluster | How the CRs are synced from git |
+| `run-all.sh` | The GitOps path: `prereq.sh` + `argocd.sh` + `e2e.sh` | |
+| `prereq.sh` | Creates a kind cluster, installs OLM and the ArgoCD operator | OLM, the *other* way to ship operators |
+| `argocd.sh` | Registers this repo as an ArgoCD app and syncs it | |
+| `e2e.sh` | End-to-end check: the Kafka cluster answers | Gating on `condition=Ready` |
+| `ignite.sh` | Installs the pinned tool versions via `ciux` | |
 
 ## Cleanup
 
