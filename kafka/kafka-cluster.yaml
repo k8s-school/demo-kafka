@@ -1,4 +1,4 @@
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaNodePool
 metadata:
   name: dual-role
@@ -20,7 +20,7 @@ spec:
         deleteClaim: false
         kraftMetadata: shared
 ---
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: Kafka
 metadata:
   name: kafka-cluster
@@ -28,13 +28,10 @@ metadata:
     app.kubernetes.io/name: kafka-cluster
     app.kubernetes.io/part-of: kafka-demo
     strimzi.io/cluster: "kafka-cluster"
-  annotations:
-    strimzi.io/node-pools: enabled
-    strimzi.io/kraft: enabled
 spec:
   kafka:
-    version: 4.1.0
-    metadataVersion: 4.1-IV1
+    version: 4.3.1
+    metadataVersion: 4.3-IV0
     listeners:
       - name: plain
         port: 9092

@@ -1,18 +1,18 @@
-# Qserv operator CI workflow
+# Kafka demo CI workflow
 ---
 name: "e2e tests"
 on:
   push:
   pull_request:
     branches:
-      - master
+      - main
 jobs:
   main:
     name: Run Kafka demo
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         # Required by ciux
         with:
           fetch-depth: 0
